@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero-section text-center">
+    <h1 class="hero-title">MedWatch</h1>
+    <p class="hero-subtitle">
+        Explore drug adverse event reports from the FDA Adverse Event Reporting System.
+        Search any drug to see reported reactions, severity breakdowns, trends over time,
+        and AI-powered insights — all in one place.
+    </p>
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="input-group hero-search">
+                <input type="text" id="heroSearch" class="form-control form-control-lg"
+                       placeholder="Search a drug (e.g. aspirin, metformin)">
+                <button class="btn btn-primary btn-lg" id="heroSearchBtn">Search</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row text-center mt-5">
+    <div class="col-md-4">
+        <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <h5>Interactive Charts</h5>
+            <p>Visualize adverse reactions, severity, and reporting trends with interactive Plotly charts.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="feature-card">
+            <div class="feature-icon">🔍</div>
+            <h5>FDA Data</h5>
+            <p>Search real adverse event reports directly from the openFDA database.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="feature-card">
+            <div class="feature-icon">🤖</div>
+            <h5>AI Insights</h5>
+            <p>Get plain-English analysis of drug safety data powered by Google Gemini.</p>
+        </div>
+    </div>
+
+<div class="row mt-5">
+    <div class="col-md-6">
+        <div class="info-card">
+            <h5>⚠️ Disclaimer</h5>
+            <p>
+                MedWatch is an educational tool that retrieves data from the FDA Adverse
+                Event Reporting System (FAERS). Adverse event reports do not prove that a
+                drug caused the reported reaction. The data should not be used to make
+                medical decisions. Always consult a healthcare professional for medical advice.
+            </p>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="info-card">
+            <h5>🛠️ Tech Stack</h5>
+            <p>
+                Built with Python, Flask, HTML/CSS, Bootstrap, JavaScript, Plotly
+                for data visualization, the openFDA REST API for adverse event data,
+                and Google Gemini for AI-powered insights.
+            </p>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    const heroInput = document.getElementById("heroSearch");
+    const heroBtn = document.getElementById("heroSearchBtn");
+
+    function goSearch() {
+        const drug = heroInput.value.trim();
+        if (drug) {
+            window.location.href = `/search?drug=${encodeURIComponent(drug)}`;
+        }
+    }
+
+    heroBtn.addEventListener("click", goSearch);
+    heroInput.addEventListener("keypress", e => {
+        if (e.key === "Enter") goSearch();
+    });
+</script>
+{% endblock %}

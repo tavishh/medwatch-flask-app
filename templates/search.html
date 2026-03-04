@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Search Drug Adverse Events</h1>
+<p>Enter a drug name to search the FDA Adverse Event Reporting System.</p>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="input-group">
+            <input type="text" id="drugSearch" class="form-control"
+                   placeholder="e.g. aspirin, ibuprofen, metformin">
+            <button class="btn btn-primary" id="searchBtn">Search</button>
+        </div>
+    </div>
+</div>
+
+<div id="loading" class="d-none">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <span class="ms-2">Searching FDA database...</span>
+</div>
+
+<div id="insightsSection" class="d-none mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h4 class="mb-0">AI Insights</h4>
+        <button class="btn btn-outline-primary btn-sm" id="insightsBtn">
+            Generate AI Insights
+        </button>
+    </div>
+    <div id="insightsLoading" class="d-none">
+        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+        <span class="ms-2">Analyzing data with Gemini...</span>
+    </div>
+    <div id="insightsContent"></div>
+</div>
+
+<div id="barChart" class="mb-4"></div>
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div id="pieChart"></div>
+    </div>
+    <div class="col-md-6">
+        <div id="timelineChart"></div>
+    </div>
+</div>
+<div id="results"></div>
+
+<script>
+    const searchBtn = document.getElementById("searchBtn");
+    const drugInput = document.getElementById("drugSearch");
+    const resultsDiv = document.getElementById("results");
+    const barChartDiv = document.getElementById("barChart");
+    const pieChartDiv = document.getElementById("pieChart");
+    const timelineChartDiv = document.getElementById("timelineChart");
+    const loading = document.getElementById("loading");
+    const insightsSection = document.getElementById("insightsSection");
+    const insightsBtn = document.getElementById("insightsBtn");
+    const insightsLoading = document.getElementById("insightsLoading");
+    const insightsContent = document.getElementById("insightsContent");
+
+    let currentDrug = "";
+    let currentChartData = null;
+    let currentTotal = 0;
+
+    let currentPage = 1;
+    const resultsPerPage = 10;
+    let allResults = [];
+
+    async function doSearch() {
+        const drug = drugInput.value.trim();
+        if (!drug) return;
+
+        loading.classList.remove("d-none");
+        resultsDiv.innerHTML = "";
+
+        insightsSection.classList.add("d-none");
+        insightsContent.innerHTML = "";
+
+        try {
+            const res = await fetch(`/api/search?drug=${encodeURIComponent(drug)}`);
+            const data = await res.json();
+
+            if (data.error) {
+                resultsDiv.innerHTML = `<div class="alert alert-warning">${data.error}</div>`;
+                return;
+            }
+            currentDrug = drug;
+            currentChartData = data.chart_data;
+            currentTotal = data.results.length;
+
+            // Show insights section
+            insightsSection.classList.remove("d-none");
+
+            // Bar Chart - Top reactions
+            const barTrace = {
+                x: data.chart_data.labels,
+                y: data.chart_data.values,
+                type: "bar",
+                marker: {color: "#0e366c"}
+            };
+
+
+            const layout = {
+                title: `Top Adverse Reactions for "${drug}"`,
+                xaxis: {title: "Reaction", tickangle: -35},
+                yaxis: {title: "Number of Reports"},
+                margin: {b:150}
+            };
+            Plotly.newPlot(barChartDiv, [barTrace], layout, {responsive:true});
+
+            // Pie chart — serious vs non-serious
+            const pieTrace = {
+                labels: data.chart_data.serious_labels,
+                values: data.chart_data.serious_values,
+                type: "pie",
+                marker: { colors: ["#dc3545", "#198754", "#6c757d"] }
+            };
+            Plotly.newPlot(pieChartDiv, [pieTrace], {
+                title: "Report Severity"
+            }, { responsive: true });
+
+            // Timeline chart — reports over time
+            const timeTrace = {
+                x: data.chart_data.timeline_dates,
+                y: data.chart_data.timeline_counts,
+                type: "scatter",
+                mode: "lines+markers",
+                marker: { color: "#0e366c" },
+                line: { shape: "spline" }
+            };
+            Plotly.newPlot(timelineChartDiv, [timeTrace], {
+                title: "Reports Over Time",
+                xaxis: { title: "Date" },
+                yaxis: { title: "Number of Reports" }
+            }, { responsive: true });
+
+
+            // Render result cards
+
+            allResults = data.results;
+            renderPage(1);
+
+        } catch (err) {
+            resultsDiv.innerHTML = `<div class="alert alert-danger">Something went wrong. Try again.</div>`;
+        } finally {
+            loading.classList.add("d-none");
+        }
+    }
+
+    async function getInsights() {
+    insightsLoading.classList.remove("d-none");
+    insightsBtn.disabled = true;
+    insightsContent.innerHTML = "";
+
+    const reactions = currentChartData.labels.join(", ");
+    const serious = currentChartData.serious_labels
+        .map((label, i) => `${label}: ${currentChartData.serious_values[i]}`)
+        .join(", ");
+
+    try {
+        const res = await fetch(
+            `/api/insights?drug=${encodeURIComponent(currentDrug)}&reactions=${encodeURIComponent(reactions)}&serious=${encodeURIComponent(serious)}&total=${currentTotal}`
+        );
+        const data = await res.json();
+
+        if (data.error) {
+            insightsContent.innerHTML = `<div class="alert alert-warning">${data.error}</div>`;
+            return;
+        }
+
+        insightsContent.innerHTML = `<div class="card"><div class="card-body">${data.insights.replace(/\n/g, "<br>")}</div></div>`;
+
+    } catch (err) {
+        insightsContent.innerHTML = `<div class="alert alert-danger">Could not generate insights. Try again.</div>`;
+    } finally {
+        insightsLoading.classList.add("d-none");
+        insightsBtn.disabled = false;
+    }
+}
+
+    function renderPage(page) {
+        currentPage = page;
+        const start = (page - 1) * resultsPerPage;
+        const end = start + resultsPerPage;
+        const pageResults = allResults.slice(start, end);
+        const totalPages = Math.ceil(allResults.length / resultsPerPage);
+
+        let html = `<h4>Showing ${start + 1}–${Math.min(end, allResults.length)} of ${allResults.length} adverse event reports</h4>`;
+        html += '<div class="row">';
+
+        pageResults.forEach(event => {
+            const date = event.date;
+            const formatted = date !== "Unknown"
+                ? `${date.slice(0,4)}-${date.slice(4,6)}-${date.slice(6,8)}`
+                : "Unknown";
+            const serious = event.serious === "1" ? "Yes" : "No";
+
+            html += `
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">Report Date: ${formatted}</h6>
+                            <p class="card-text">
+                                <strong>Serious:</strong> ${serious}<br>
+                                <strong>Reactions:</strong> ${event.reactions.join(", ") || "None listed"}
+                            </p>
+                        </div>
+                    </div>
+                </div>`;
+        });
+
+        html += '</div>';
+
+        // Pagination controls
+        html += '<nav><ul class="pagination justify-content-center mt-3">';
+
+        html += `<li class="page-item ${page === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="renderPage(${page - 1}); return false;">Previous</a>
+        </li>`;
+
+        for (let i = 1; i <= totalPages; i++) {
+            html += `<li class="page-item ${i === page ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="renderPage(${i}); return false;">${i}</a>
+            </li>`;
+        }
+
+        html += `<li class="page-item ${page === totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="renderPage(${page + 1}); return false;">Next</a>
+        </li>`;
+
+        html += '</ul></nav>';
+
+        resultsDiv.innerHTML = html;
+        resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    searchBtn.addEventListener("click", doSearch);
+    insightsBtn.addEventListener("click", getInsights);
+    drugInput.addEventListener("keypress", e => {
+        if (e.key === "Enter") doSearch();
+    });
+</script>
+
+{% endblock %}
