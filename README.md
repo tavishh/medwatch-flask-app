@@ -1,4 +1,4 @@
-# MedWatch 💊
+# MedWatch
 
 A full-stack web application that lets you explore drug adverse event reports from the **FDA Adverse Event Reporting System (FAERS)**. Search any drug to see reported reactions, severity breakdowns, trends over time, and AI-powered insights.
 
