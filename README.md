@@ -1,6 +1,6 @@
-# MedWatch 
+# MedWatch 💊
 
-A full-stack web application that lets you explore drug adverse event reports from the **FDA Adverse Event Reporting System (FAERS)**. Search any drug to see reported reactions, severity breakdowns, trends over time, and AI-powered insights - all in one place.
+A full-stack web application that lets you explore drug adverse event reports from the **FDA Adverse Event Reporting System (FAERS)**. Search any drug to see reported reactions, severity breakdowns, trends over time, and AI-powered insights.
 
 ![Python](https://img.shields.io/badge/Python-3.x-blue)
 ![Flask](https://img.shields.io/badge/Flask-3.1-lightgrey)
@@ -11,10 +11,12 @@ A full-stack web application that lets you explore drug adverse event reports fr
 
 ### Homepage
 ![Homepage Search](static/images/homepage-search.png)
+
 ![Homepage Cards](static/images/homepage-cards.png)
 
 ### Search Results & Charts
 ![Search Charts](static/images/search-charts.png)
+
 ![Search Pagination](static/images/search-pagination.png)
 
 ### AI Insights
@@ -100,7 +102,7 @@ medwatch/
 
 1. User enters a drug name on the homepage or search page
 2. Flask backend queries the openFDA API for adverse event reports
-3. Data is processed - reactions are counted, severity is categorized, dates are grouped by month
+3. Data is processed: reactions are counted, severity is categorized, dates are grouped by month
 4. Frontend renders three interactive Plotly charts and paginated report cards
 5. User can optionally generate AI insights via Google Gemini for a plain-English summary
 
