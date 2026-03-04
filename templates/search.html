@@ -232,7 +232,8 @@
         html += '</ul></nav>';
 
         resultsDiv.innerHTML = html;
-        resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (page !== 1){resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });}
+
     }
 
     searchBtn.addEventListener("click", doSearch);
@@ -240,6 +241,13 @@
     drugInput.addEventListener("keypress", e => {
         if (e.key === "Enter") doSearch();
     });
+    // Auto-search if drug is in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlDrug = urlParams.get("drug");
+    if (urlDrug) {
+        drugInput.value = urlDrug;
+        doSearch();
+    }
 </script>
 
 {% endblock %}
